@@ -3,13 +3,13 @@
 
 ## 1. General Overview
 
-This project addresses a critical industrial challenge: predicting machine failures before they occur, specifically in the context of resource-constrained embedded systems. Predictive maintenance represents a significant advancement over traditional reactive or scheduled approaches, offering substantial economic benefits by reducing downtime, extending equipment lifespan, and optimizing maintenance resources.
+This project tackles an industrial problem: predicting machine failures in embedded systems with limited resources. Predictive maintenance offers advantages over traditional reactive or scheduled methods. It reduces downtime, prolongs equipment life, and optimizes maintenance resources.
 
-The primary objective of this project was twofold: to develop a deep learning model capable of analyzing industrial sensor data to predict machine failures and then efficiently deploy this model on a resource-limited embedded hardware target (STM32L4R9). This "edge AI" approach enables inferences to be performed directly on the hardware connected to industrial machines, eliminating the need for a permanent cloud connection, thus reducing latency and addressing data privacy concerns.
+The project's main goal was dual: first, to build a deep learning model analyzing industrial sensor data to foresee machine failures. Second, to implement this model efficiently on embedded hardware with limited resources (STM32L4R9). This approach enables inference directly on hardware attached to industrial machines. It removes the need for constant cloud connections, reduces latency, and improves data privacy.
 
-Using the AI4I 2020 Predictive Maintenance dataset, which contains 10,000 instances of industrial sensor data, we created a model capable of recognizing patterns in operational parameters and identifying potential failures before they occur. The dataset classifies failures into five categories: tool wear failure (TWF), heat dissipation failure (HDF), power failure (PWF), overload failure (OSF), and random failure (RNF).
+We used the AI4I 2020 Predictive Maintenance dataset. It has 10,000 data points from industrial sensors. The developed model identifies operational patterns and detects failures early. The dataset categorizes failures into five types: tool wear, heat dissipation, power, overload, and random failures.
 
-The significance of this project lies in its practical industrial application—not only facilitating a transition from reactive to proactive maintenance strategies but also demonstrating the feasibility of executing sophisticated AI models on resource-limited microcontrollers. This edge computing approach significantly reduces cloud infrastructure costs, bandwidth consumption, and enables autonomous predictive maintenance systems on existing equipment with minimal hardware investment.
+The project's importance is its practical industrial use. It helps shift maintenance strategies from reactive to proactive methods. It also shows that complex AI models can operate on microcontrollers with limited resources. This edge computing solution cuts cloud costs and bandwidth use. Additionally, it allows predictive maintenance on existing machines without significant hardware investment.
 
 ## 2. Detailed Project Methodology
 
@@ -17,19 +17,17 @@ The significance of this project lies in its practical industrial application—
 
 #### Distribution Analysis of Machine Failures
 
-We began by analyzing the distribution of machine failures versus non-failures. This step was crucial for understanding the nature of our dataset and identifying potential challenges for model training. By visualizing this distribution, we aimed to detect class imbalance issues, which are common in maintenance datasets where failure events are relatively rare compared to normal operation.
+We started by examining the distribution between machine failures and normal operations. This step helped understand the dataset and identify challenges for training. Visualization was used to detect class imbalance, common in maintenance data because failures are usually rarer than normal operation.
 
-The analysis revealed a significant imbalance with approximately 20 times more non-failure instances than failure instances. This imbalance is reflective of real-world industrial scenarios but poses significant challenges for model training, as models tend to favor the majority class, potentially overlooking critical failure patterns.
+The analysis showed an imbalance: non-failures were about 20 times more frequent than failures. This reflects actual industrial conditions. However, it complicates model training, as models often prioritize the dominant class and might miss critical failure patterns.
 
 #### Failure Type Distribution Analysis
 
-We further examined the distribution of specific failure types. This analysis was important to understand the relative frequency of different failure modes, to identify if certain failure types were underrepresented in the dataset, to guide our modeling approach, particularly regarding how to handle rare failure types.
+We analyzed the distribution of individual failure types. This helped identify how frequent each type was in the dataset. The goal was to spot rare failure categories to adapt our modeling approach accordingly.
 
-Our analysis revealed not only the overall imbalance between failures and non-failures but also a significant imbalance within the failure types themselves. HDF (Heat Dissipation Failure) was the most prevalent with 115 occurrences, while RNF (Random Failure) appeared only 19 times. This multi-level imbalance presents a compound challenge for model development: failures as a whole are already rare events (minority class), and within this minority, certain failure types are further underrepresented.
+Our findings showed imbalance not only between failures and non-failures but also within failure types. Heat Dissipation Failure (HDF) was most common, appearing 115 times. In contrast, Random Failure (RNF) occurred only 19 times. This two-level imbalance creates difficulties: failures overall are rare, and some failure types are even rarer.
 
-This nested class imbalance creates a particularly challenging scenario for the model's ability to generalize. When training a neural network on such data, the model will likely achieve high accuracy by correctly classifying the abundant non-failure cases, while simultaneously failing to learn the distinguishing features of rare failure types like RNF. From a technical perspective, this can lead to biased decision boundaries in the model's parameter space, resulting in poor precision and recall for these underrepresented failure categories. In predictive maintenance applications, this is especially problematic since certain rare failure modes might be the most catastrophic or costly types of failures.
-
-Most notably, our analysis revealed an intriguing phenomenon: instances where machines were recorded as having failed (Machine failure = 1) but without any specific failure type being attributed. This discrepancy suggests several possibilities that have significant implications for model development:
+This nested imbalance complicates the model's ability to generalize. Neural networks trained on such datasets often favor frequent non-failure cases. As a result, models may struggle to identify rare failures like RNF accurately. Technically, this can cause biased predictions, negatively impacting precision and recall for uncommon failure types. In maintenance tasks, this issue is critical since rare failures often lead to severe or costly outcomes.
 
 1. **Data collection limitations**: The monitoring system may be capable of detecting anomalous behavior (indicating failure) without having sufficient sensor coverage to determine the exact failure mechanism.
 2. **Multi-factor failures**: Some failures might result from complex interactions between multiple systems that don't fit neatly into the predefined failure categories.
@@ -51,7 +49,7 @@ A key preprocessing decision was the creation of a "No Failure" target variable,
 
 We deliberately structured our target variables to include "No Failure" and only four of the failure types (TWF, HDF, PWF, OSF), excluding RNF (Random Failures). With only 19 instances of RNF in the entire dataset (less than 0.2% of all samples), there was insufficient data to build a reliable predictive model for this failure type. From a statistical learning perspective, such a small sample is unlikely to capture the true distribution of the underlying failure mechanism. The four selected failure types (TWF, HDF, PWF, OSF) represent specific mechanical or operational issues that can be addressed through targeted maintenance interventions, whereas "Random Failures" by definition lack clear causal patterns, making them less suitable for predictive maintenance applications.
 
-Regarding our validation strategy, we made a conscious decision to use the test set for both validation during training and final evaluation. This approach, while not ideal in larger datasets, was justified in our case due to the limited size of the dataset (10,000 samples total). With only 8,000 samples in the training set, creating a separate validation split would have further reduced the already limited data available for training, potentially hampering the model's ability to learn failure patterns.
+For validation, we chose to use the test set during both training and final evaluation. Although typically not recommended, this was necessary due to our dataset's limited size (10,000 samples). The training set had only 8,000 samples. Creating a separate validation set would have reduced training data further, limiting the model's capacity to detect failure patterns.
 
 From a technical standpoint, this approach involves a trade-off: using the same data for validation during training and final evaluation can lead to slightly optimistic performance estimates, but this was mitigated through:
 
@@ -60,6 +58,7 @@ From a technical standpoint, this approach involves a trade-off: using the same 
 3. A sufficiently large test set (2,000 samples) to provide stable performance metrics
 
 We judged that this compromise was appropriate given the dataset constraints, though in an ideal scenario with more data, a proper three-way split (training/validation/test) would be preferred.
+
 #### Architecture Design Considerations
 
 For our initial model, we designed a neural network with the following characteristics:
@@ -69,13 +68,12 @@ For our initial model, we designed a neural network with the following character
 - Dropout (0.4) to prevent overfitting, particularly important given our imbalanced dataset
 - Sigmoid activation in the output layer to enable multi-label classification
 
-We chose a binary cross-entropy loss function since each output represents a binary classification problem (presence or absence of a specific failure type). The Adam optimizer was selected for its adaptive learning rate capabilities, making it well-suited for problems with noisy or sparse gradients.
+We selected binary cross-entropy as the loss function since each output represents a binary classification (failure or no failure). The Adam optimizer was chosen due to its adaptive learning rate, suitable for datasets with noisy or sparse gradients.
 
-#### Training Approach
+Training Method
+We applied early stopping with a patience of 15 epochs. This reduced overfitting while allowing sufficient training. We used a batch size of 64 to balance training speed with accuracy.
 
-We implemented early stopping with a patience of 15 epochs to prevent overfitting while ensuring the model had sufficient time to learn. The batch size of 64 was chosen as a compromise between training speed and gradient accuracy.
-
-During training, we monitored both training and validation metrics to assess model performance and identify overfitting. This monitoring is particularly critical when working with imbalanced datasets, as high accuracy can be misleading if the model simply predicts the majority class.
+We tracked metrics for training and validation to detect overfitting. Monitoring is crucial for imbalanced data, as high accuracy alone might reflect biased predictions towards the majority class.
 
 ### 2.3 Enhanced Model Development (With Balancing)
 
@@ -89,7 +87,7 @@ Our rebalancing strategy employed a two-phase approach:
 
 First, we applied Random Undersampling to address the extreme imbalance in the dataset. We configured RandomUnderSampler to reduce the "No Failure" class to 5,000 samples (from the original ~9,500), a reduction of approximately 47%. This threshold was carefully chosen as a compromise between preserving important information about normal operation while reducing its overwhelming influence on model training.    
 
-Undersampling alone, however, would result in insufficient training data. Therefore, we implemented SMOTE (Synthetic Minority Over-sampling Technique) as our second phase. For each minority sample, SMOTE randomly selects one of its k-nearest neighbors and creates a new synthetic sample along the line segment connecting the two points in the feature space. This process is repeated for each failure type independently, ensuring that the synthetic samples for each failure mode accurately reflect the unique characteristics of that specific failure type rather than blending failure types. SMOTE generated synthetic samples until all classes had approximately equal representation (5,000 samples each), creating a perfectly balanced dataset.
+Undersampling alone, however, would result in insufficient training data. We then applied SMOTE (Synthetic Minority Over-sampling Technique). SMOTE selects a minority sample and a neighbor randomly from its k-nearest neighbors. It generates synthetic samples along the line between these points, helping address the imbalance. This process is repeated for each failure type independently, ensuring that the synthetic samples for each failure mode accurately reflect the unique characteristics of that specific failure type rather than blending failure types. SMOTE generated synthetic samples until all classes had approximately equal representation (5,000 samples each), creating a perfectly balanced dataset.
 
 This combined approach offers several technical advantages over using either technique alone. By first reducing the majority class and then synthesizing minority classes, we create a dataset where each class contributes equally to the loss function during training without excessive duplication or synthetic data generation. The synthetic samples help fill gaps in the feature space, particularly in regions characteristic of failure states, improving the model's decision boundaries in these critical areas. While synthetic samples introduce some artificial patterns, they provide less opportunity for overfitting than would occur if we simply duplicated the existing minority samples. By first reducing the dataset size through undersampling, we decrease the computational burden of the subsequent SMOTE operation, making the overall process more efficient.
 
@@ -124,7 +122,7 @@ By using SMOTE, the model detects machine failures accurately. The confusion mat
 
 ### 3.1 Model Export for Embedded Platform
 
-After developing and validating our predictive maintenance model in TensorFlow, we began the adaptation process for microcontroller deployment. The first crucial step was converting our model to the TensorFlow Lite (TFLite) format, specifically designed for resource-constrained environments.
+After training and validating our predictive model in TensorFlow, we adapted it for deployment on a microcontroller. We first converted the model to TensorFlow Lite (TFLite), optimized for systems with limited resources.
 
 ```
 # Convert the model to TFLite format
@@ -136,7 +134,7 @@ with open('../models/machine_failure_model.tflite', 'wb') as f:
     f.write(tflite_model)
 ```
 
-This conversion is not merely a formality but a critical technical optimization process for several reasons. The TFLite format applies multiple compression techniques to significantly reduce model size. This optimization is crucial for microcontrollers like the STM32L4R9, which have limited flash memory (typically a few MB).
+his step was necessary for deployment. TFLite reduces model size through compression techniques. This reduction is essential for microcontrollers like the STM32L4R9, which have limited memory.
 
 #### Preparing Validation Data for Deployment
 
@@ -152,7 +150,7 @@ np.save('Y_test.npy', Y_test.astype(np.float32))
 
 #### Integration into the STM32 Ecosystem
 
-STM32Cube.AI is a software ecosystem developed by STMicroelectronics specifically for deploying deep learning models on their microcontrollers. Our choice of this platform was based on several significant technical advantages. STM32Cube.AI does more than just transpose the TFLite model; it converts it into optimized C code for the STM32L4R9’s Cortex-M architecture, leveraging specific processor instructions and its Floating Point Unit (FPU). The generated code exploits STM32L4R9’s hardware-specific features, such as pipeline architecture, SIMD (Single Instruction, Multiple Data) capabilities where available, and loop unrolling techniques to maximize execution speed.
+STM32Cube.AI is software designed for deploying deep learning models on ST microcontrollers. We selected this platform for technical reasons. STM32Cube.AI converts the TFLite model into optimized C code for the STM32L4R9’s Cortex-M processor. This conversion uses hardware features like the floating-point unit (FPU), pipeline architecture, SIMD (Single Instruction, Multiple Data) capabilities, and loop unrolling. These optimizations improve execution speed on the microcontroller.
     
 
 ### 3.3 Evaluation on Hardware Target
@@ -208,5 +206,5 @@ Evaluating model on STM32...
 ----- Iteration 100 -----
    Expected output: [1. 0. 0. 0. 0.]
    Received output: [0.996078431372549, 0.0, 0.0, 0.0, 0.0]
------------------------ Accuracy: 0.97
+----------------------- Accuracy: 0.98
 ```
