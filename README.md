@@ -87,7 +87,7 @@ Our rebalancing strategy employed a two-phase approach:
 
 First, we applied Random Undersampling to address the extreme imbalance in the dataset. We configured RandomUnderSampler to reduce the "No Failure" class to 5,000 samples (from the original ~9,500), a reduction of approximately 47%. This threshold was carefully chosen as a compromise between preserving important information about normal operation while reducing its overwhelming influence on model training.    
 
-Undersampling alone, however, would result in insufficient training data. We then applied SMOTE (Synthetic Minority Over-sampling Technique). SMOTE selects a minority sample and a neighbor randomly from its k-nearest neighbors. It generates synthetic samples along the line between these points, helping address the imbalance. This process is repeated for each failure type independently, ensuring that the synthetic samples for each failure mode accurately reflect the unique characteristics of that specific failure type rather than blending failure types. SMOTE generated synthetic samples until all classes had approximately equal representation (5,000 samples each), creating a perfectly balanced dataset.
+Undersampling alone, however, would result in insufficient training data. We then applied SMOTE (Synthetic Minority Over-sampling Technique). SMOTE selects a minority sample and a neighbor randomly from its k-nearest neighbors. It generates synthetic samples along the line between these points, helping address the imbalance. This process is repeated for each failure type independently, ensuring that the synthetic samples for each failure mode accurately reflect the unique characteristics of that specific failure type rather than blending failure types. SMOTE generated synthetic samples not to create exactly equal class sizes, but to intelligently oversample minority classes by up to 20x their original count, while capping the total at 50% of the majority class size. Instead of uniform 5,000 samples, it generates synthetic data proportionally, ensuring minority classes are better represented without artificially forcing an identical sample count across all classes.
 
 This combined approach offers several technical advantages over using either technique alone. By first reducing the majority class and then synthesizing minority classes, we create a dataset where each class contributes equally to the loss function during training without excessive duplication or synthetic data generation. The synthetic samples help fill gaps in the feature space, particularly in regions characteristic of failure states, improving the model's decision boundaries in these critical areas. While synthetic samples introduce some artificial patterns, they provide less opportunity for overfitting than would occur if we simply duplicated the existing minority samples. By first reducing the dataset size through undersampling, we decrease the computational burden of the subsequent SMOTE operation, making the overall process more efficient.
 
@@ -118,11 +118,11 @@ These enhancements were designed to help the model better learn from the balance
 
 By using SMOTE, the model detects machine failures accurately. The confusion matrix indicates a balance between true positives and false negatives for failure detection. Most failures are no longer overlooked. The classification report shows improved recall and precision for failure classes. The model is more effective at distinguishing between different failure types.
 
-## 3. Model Deployment on Embedded Target
+### Part 3: Model Deployment on Embedded Target
 
 ### 3.1 Model Export for Embedded Platform
 
-After training and validating our predictive model in TensorFlow, we adapted it for deployment on a microcontroller. We first converted the model to TensorFlow Lite (TFLite), optimized for systems with limited resources.
+After training and validating our predictive model in TensorFlow, we adapted it for deployment on a microcontroller. The first step was converting the model to TensorFlow Lite (TFLite), optimized for resource-limited systems.
 
 ```
 # Convert the model to TFLite format
@@ -134,11 +134,11 @@ with open('../models/machine_failure_model.tflite', 'wb') as f:
     f.write(tflite_model)
 ```
 
-his step was necessary for deployment. TFLite reduces model size through compression techniques. This reduction is essential for microcontrollers like the STM32L4R9, which have limited memory.
+This conversion is essential to reduce the model size using compression techniques, which is crucial for microcontrollers like the STM32L4R9, which have limited memory.
 
 #### Preparing Validation Data for Deployment
 
-To ensure consistent evaluation of model performance on the embedded target, we prepared our test data specifically:
+To ensure consistent evaluation of model performance on the embedded target, we prepared our test data accordingly:
 
 ```
 # Save test data in numpy format
@@ -150,17 +150,15 @@ np.save('Y_test.npy', Y_test.astype(np.float32))
 
 #### Integration into the STM32 Ecosystem
 
-STM32Cube.AI is software designed for deploying deep learning models on ST microcontrollers. We selected this platform for technical reasons. STM32Cube.AI converts the TFLite model into optimized C code for the STM32L4R9’s Cortex-M processor. This conversion uses hardware features like the floating-point unit (FPU), pipeline architecture, SIMD (Single Instruction, Multiple Data) capabilities, and loop unrolling. These optimizations improve execution speed on the microcontroller.
-    
+STM32Cube.AI is a tool designed for deploying deep learning models on ST microcontrollers. We selected this platform for technical reasons, as it converts the TFLite model into optimized C code for the STM32L4R9’s Cortex-M processor. This conversion utilizes hardware features such as the floating-point unit (FPU), pipeline architecture, SIMD (Single Instruction, Multiple Data) capabilities, and loop unrolling. These optimizations significantly improve execution speed on the microcontroller.
 
 ### 3.3 Evaluation on Hardware Target
 
 #### PC-STM32 Communication Protocol
 
-To validate our embedded implementation, we developed a Python script that establishes bidirectional communication with the microcontroller via UART. The protocol includes essential technical elements:
+To validate our embedded implementation, we developed a Python script that establishes bidirectional communication with the microcontroller via the UART interface. The communication protocol consists of the following steps:
 
-1. The `synchronize_UART()` function implements a handshaking protocol ensuring proper synchronization between the PC and microcontroller before data transmission.
-    
+1. The `synchronize_UART()` function implements a synchronization protocol ensuring correct data exchange between the PC and STM32 before transmission.
 
 ```
 def synchronize_UART(serial_port):
@@ -183,7 +181,7 @@ def send_inputs_to_STM32(inputs, serial_port):
     serial_port.write(buffer)
 ```
 
-3. Model outputs are received as normalized uint8 values and then interpreted to determine the predicted class.
+3. Model outputs are received as normalized uint8 values and interpreted to determine the predicted class.
 
 ```
 def read_output_from_STM32(serial_port):
